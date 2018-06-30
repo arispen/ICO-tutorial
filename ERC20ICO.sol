@@ -1,17 +1,10 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 // ----------------------------------------------------------------------------
-// 'bitfwd' CROWDSALE token contract
+// ERC20 ICO contract
+// by arispen, 2018
 //
-// Deployed to : 0xD0FDf2ECd4CadE671a7EE1063393eC0eB90816FD
-// Symbol      : FWD
-// Name        : bitfwd Token
-// Total supply: Gazillion
-// Decimals    : 18
-//
-// Enjoy.
-//
-// (c) by Moritz Neto & Daniel Bar with BokkyPooBah / Bok Consulting Pty Ltd Au 2017. The MIT Licence.
+// based on work (c) by Moritz Neto & Daniel Bar with BokkyPooBah / Bok Consulting Pty Ltd Au 2017. The MIT Licence.
 // ----------------------------------------------------------------------------
 
 
@@ -74,7 +67,7 @@ contract Owned {
 
     event OwnershipTransferred(address indexed _from, address indexed _to);
 
-    function Owned() public {
+    constructor() public {
         owner = msg.sender;
     }
 
@@ -88,7 +81,7 @@ contract Owned {
     }
     function acceptOwnership() public {
         require(msg.sender == newOwner);
-        OwnershipTransferred(owner, newOwner);
+        emit OwnershipTransferred(owner, newOwner);
         owner = newOwner;
         newOwner = address(0);
     }
@@ -99,7 +92,7 @@ contract Owned {
 // ERC20 Token, with the addition of symbol, name and decimals and assisted
 // token transfers
 // ----------------------------------------------------------------------------
-contract bitfwdToken is ERC20Interface, Owned, SafeMath {
+contract ERC20ICO is ERC20Interface, Owned, SafeMath {
     string public symbol;
     string public  name;
     uint8 public decimals;
@@ -115,13 +108,12 @@ contract bitfwdToken is ERC20Interface, Owned, SafeMath {
     // ------------------------------------------------------------------------
     // Constructor
     // ------------------------------------------------------------------------
-    function bitfwdToken() public {
-        symbol = "FWD";
-        name = "bitfwd Token";
+    constructor(string _name, string _symbol) public {
+        name = _name;
+        symbol = _symbol;
         decimals = 18;
         bonusEnds = now + 1 weeks;
-        endDate = now + 7 weeks;
-
+        endDate = now + 30 days;
     }
 
 
@@ -149,7 +141,7 @@ contract bitfwdToken is ERC20Interface, Owned, SafeMath {
     function transfer(address to, uint tokens) public returns (bool success) {
         balances[msg.sender] = safeSub(balances[msg.sender], tokens);
         balances[to] = safeAdd(balances[to], tokens);
-        Transfer(msg.sender, to, tokens);
+        emit Transfer(msg.sender, to, tokens);
         return true;
     }
 
@@ -164,7 +156,7 @@ contract bitfwdToken is ERC20Interface, Owned, SafeMath {
     // ------------------------------------------------------------------------
     function approve(address spender, uint tokens) public returns (bool success) {
         allowed[msg.sender][spender] = tokens;
-        Approval(msg.sender, spender, tokens);
+        emit Approval(msg.sender, spender, tokens);
         return true;
     }
 
@@ -182,7 +174,7 @@ contract bitfwdToken is ERC20Interface, Owned, SafeMath {
         balances[from] = safeSub(balances[from], tokens);
         allowed[from][msg.sender] = safeSub(allowed[from][msg.sender], tokens);
         balances[to] = safeAdd(balances[to], tokens);
-        Transfer(from, to, tokens);
+        emit Transfer(from, to, tokens);
         return true;
     }
 
@@ -203,13 +195,14 @@ contract bitfwdToken is ERC20Interface, Owned, SafeMath {
     // ------------------------------------------------------------------------
     function approveAndCall(address spender, uint tokens, bytes data) public returns (bool success) {
         allowed[msg.sender][spender] = tokens;
-        Approval(msg.sender, spender, tokens);
+        emit Approval(msg.sender, spender, tokens);
         ApproveAndCallFallBack(spender).receiveApproval(msg.sender, tokens, this, data);
         return true;
     }
 
     // ------------------------------------------------------------------------
-    // 1,000 FWD Tokens per 1 ETH
+    // 1000 Tokens per 1 ETH
+    // 1200 Tokens in bonus period
     // ------------------------------------------------------------------------
     function () public payable {
         require(now >= startDate && now <= endDate);
@@ -221,7 +214,7 @@ contract bitfwdToken is ERC20Interface, Owned, SafeMath {
         }
         balances[msg.sender] = safeAdd(balances[msg.sender], tokens);
         _totalSupply = safeAdd(_totalSupply, tokens);
-        Transfer(address(0), msg.sender, tokens);
+        emit Transfer(address(0), msg.sender, tokens);
         owner.transfer(msg.value);
     }
 
